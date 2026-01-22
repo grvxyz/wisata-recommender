@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Rekomendasi Wisata{% endblock %}
+
+{% block content %}
+<div class="rekom-wrapper">
+
+    <!-- HEADER -->
+    <div class="rekom-header">
+        <h1>🤖 Rekomendasi Wisata Jogja</h1>
+        <p>Pilih atau ketik satu destinasi favorit, sistem akan merekomendasikan wisata serupa.</p>
+    </div>
+
+    <!-- FORM (BISA DIKETIK) -->
+    <form method="POST" class="rekom-form">
+        <input
+            type="text"
+            name="tempat"
+            list="wisataList"
+            placeholder="Ketik nama wisata favorit..."
+            value="{{ tempat_dipilih if tempat_dipilih else '' }}"
+            required
+        >
+
+        <datalist id="wisataList">
+            {% for t in tempat_list %}
+            <option value="{{ t }}"></option>
+            {% endfor %}
+        </datalist>
+
+        <button type="submit">✨ Rekomendasikan</button>
+    </form>
+
+    <!-- HASIL REKOMENDASI -->
+    {% if hasil %}
+    <h3 class="section-title">🌟 Rekomendasi Untukmu</h3>
+
+    <div class="grid">
+        {% for r in hasil %}
+        <div class="card">
+            <img src="{{ r.image }}" alt="{{ r.nama }}">
+            <div class="card-body">
+                <h4>{{ r.nama }}</h4>
+                <p>⭐ {{ r.vote_average }}</p>
+                <p>HTM Weekday: Rp {{ "{:,}".format(r.htm_weekday) }}</p>
+                <a href="/wisata/{{ r.id }}" class="btn-detail">Detail</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block style %}
+<style>
+.rekom-wrapper {
+    max-width: 1100px;
+    margin: auto;
+    padding: 30px 20px;
+}
+
+.rekom-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.rekom-header h1 {
+    margin-bottom: 8px;
+}
+
+.rekom-form {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.rekom-form input {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    min-width: 280px;
+    font-size: 14px;
+}
+
+.rekom-form button {
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: #007bff;
+    color: #fff;
+    font-size: 14px;
+}
+
+.section-title {
+    margin-bottom: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,.1);
+}
+
+.card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.card-body {
+    padding: 12px;
+}
+
+.btn-detail {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #007bff;
+}
+</style>
+{% endblock %}

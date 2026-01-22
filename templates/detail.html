@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ w.nama }}{% endblock %}
+
+{% block content %}
+<div class="detail-wrapper">
+
+    <!-- ================= HERO ================= -->
+    <div class="detail-hero">
+        <img src="{{ w.image }}" alt="{{ w.nama }}">
+        <div class="detail-overlay">
+            <h1>{{ w.nama }}</h1>
+            <span class="badge">{{ w.type }}</span>
+        </div>
+    </div>
+
+    <!-- ================= INFO RINGKAS ================= -->
+    <div class="detail-info">
+        <div class="info-card">
+            <div>
+                <small>Rating</small>
+                <h3>⭐ {{ w.vote_average }}</h3>
+            </div>
+            <div>
+                <small>Jumlah Ulasan</small>
+                <h3>💬 {{ w.vote_count }}</h3>
+            </div>
+            <div>
+                <small>HTM Weekday</small>
+                <h3>💰 Rp {{ "{:,}".format(w.htm_weekday) }}</h3>
+            </div>
+            <div>
+                <small>HTM Weekend</small>
+                <h3>💰 Rp {{ "{:,}".format(w.htm_weekend) }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DESKRIPSI ================= -->
+    <div class="detail-desc">
+        <h3>📖 Deskripsi</h3>
+        <p>{{ w.description }}</p>
+    </div>
+
+    <!-- ================= MAP ================= -->
+    <div class="detail-map">
+        <h3>📍 Lokasi Wisata</h3>
+        <div id="map"></div>
+    </div>
+
+    <!-- ================= EVALUASI (INTERPRETATIF) ================= -->
+    <div class="detail-evaluation">
+        <h3>📊 Analisis Rekomendasi</h3>
+
+        <p>
+            Destinasi <b>{{ w.nama }}</b> direkomendasikan berdasarkan
+            kesamaan karakteristik konten dengan destinasi wisata lain,
+            tingkat kepuasan pengunjung, popularitas, serta faktor geografis.
+        </p>
+
+        <div class="evaluation-grid">
+            <div class="evaluation-card">
+                <small>Kategori</small>
+                <h4>{{ w.type }}</h4>
+            </div>
+
+            <div class="evaluation-card">
+                <small>Rating</small>
+                <h4>⭐ {{ w.vote_average }}/5</h4>
+            </div>
+
+            <div class="evaluation-card">
+                <small>Popularitas</small>
+                <h4>{{ w.vote_count }} ulasan</h4>
+            </div>
+
+            <div class="evaluation-card">
+                <small>Harga Tiket</small>
+                <h4>
+                    {% if w.htm_weekday <= 20000 %}
+                        Murah
+                    {% elif w.htm_weekday <= 50000 %}
+                        Sedang
+                    {% else %}
+                        Premium
+                    {% endif %}
+                </h4>
+            </div>
+        </div>
+
+        <!-- ================= SKOR ================= -->
+        <div class="score-box">
+            <h3>🎯 Skor Rekomendasi</h3>
+            <h1>{{ skor }} / 100</h1>
+            <p>
+                Skor dihitung sebagai nilai interpretatif berdasarkan
+                rating, popularitas, jarak geografis, dan harga tiket,
+                bukan sebagai ukuran akurasi sistem rekomendasi.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================= REKOMENDASI ================= -->
+    <div class="detail-recommend">
+        <h3>✨ Rekomendasi Wisata Serupa</h3>
+
+        {% if rekomendasi %}
+        <div class="recommend-grid">
+            {% for r in rekomendasi %}
+            <div class="recommend-card">
+                <img src="{{ r.image }}" alt="{{ r.nama }}">
+                <div class="recommend-body">
+                    <span class="badge small">{{ r.type }}</span>
+                    <h4>{{ r.nama }}</h4>
+                    <p>⭐ {{ r.vote_average }}</p>
+                    <a href="/wisata/{{ r.id }}" class="btn-detail">
+                        Lihat Detail
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">Tidak ada rekomendasi serupa.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const map = L.map('map').setView(
+    [{{ w.latitude }}, {{ w.longitude }}], 14
+);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+.addTo(map);
+
+L.marker([{{ w.latitude }}, {{ w.longitude }}])
+.addTo(map)
+.bindPopup("{{ w.nama }}")
+.openPopup();
+</script>
+{% endblock %}

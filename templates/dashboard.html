@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>📊 Dashboard Wisata</h2>
+
+<!-- ================= FILTER ================= -->
+<div class="filter">
+    <select id="kategori">
+        <option value="all">Semua Kategori</option>
+        {% for k in wisata | map(attribute='type') | unique %}
+        <option value="{{ k }}">{{ k }}</option>
+        {% endfor %}
+    </select>
+
+    <select id="area">
+        <option value="all">Semua Wilayah</option>
+        <option value="Kota Yogyakarta">Kota Yogyakarta</option>
+        <option value="Sleman">Sleman</option>
+        <option value="Bantul">Bantul</option>
+        <option value="Gunungkidul">Gunungkidul</option>
+        <option value="Kulon Progo">Kulon Progo</option>
+    </select>
+
+    <select id="rating">
+        <option value="">Min Rating</option>
+        {% for i in range(1,6) %}
+        <option value="{{ i }}">⭐ {{ i }}+</option>
+        {% endfor %}
+    </select>
+
+    <select id="harga">
+        <option value="">Max HTM</option>
+        <option value="10000">≤ 10.000</option>
+        <option value="20000">≤ 20.000</option>
+        <option value="50000">≤ 50.000</option>
+    </select>
+
+    <select id="sort">
+        <option value="">Urutkan</option>
+        <option value="rating_desc">⭐ Rating Tertinggi</option>
+        <option value="rating_asc">⭐ Rating Terendah</option>
+    </select>
+</div>
+
+<!-- ================= MAP ================= -->
+<div id="map"></div>
+
+<!-- ================= CHART ================= -->
+<h3>📈 Statistik Wisata</h3>
+
+<div class="chart-grid">
+    <div class="chart-wrapper">
+        <h4>⭐ Rating Wisata</h4>
+        <canvas id="chartRating"></canvas>
+    </div>
+
+    <div class="chart-wrapper">
+        <h4>💰 Harga Tiket</h4>
+        <canvas id="chartHarga"></canvas>
+    </div>
+</div>
+
+<!-- ================= LIST ================= -->
+<h3>📍 Daftar Wisata</h3>
+<div class="grid" id="list"></div>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* ================= MAP ================= */
+const map = L.map('map').setView([-7.7972, 110.3688], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+let markers = [];
+let chartRating, chartHarga;
+
+/* ================= RENDER CHART ================= */
+function renderChart(data) {
+    const labels = data.map(w => w.nama);
+    const ratings = data.map(w => w.vote_average);
+    const harga = data.map(w => w.htm_weekday);
+    const hargaWeekend = data.map(w => w.htm_weekend);
+
+    if (chartRating) chartRating.destroy();
+    chartRating = new Chart(document.getElementById('chartRating'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rating',
+                data: ratings
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, max: 5 } }
+        }
+    });
+
+    if (chartHarga) chartHarga.destroy();
+    chartHarga = new Chart(document.getElementById('chartHarga'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'HTM Weekday', data: harga },
+                { label: 'HTM Weekend', data: hargaWeekend }
+            ]
+        },
+        options: {
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+/* ================= LOAD DATA ================= */
+function loadData() {
+    const kategori = document.getElementById("kategori").value;
+    const area = document.getElementById("area").value;
+    const rating = document.getElementById("rating").value;
+    const harga = document.getElementById("harga").value;
+    const sort = document.getElementById("sort").value;
+
+    fetch(`/api/wisata?kategori=${kategori}&area=${area}&rating=${rating}&harga=${harga}&sort=${sort}`)
+        .then(res => res.json())
+        .then(data => {
+
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            data.forEach(w => {
+                if (w.latitude && w.longitude) {
+                    const marker = L.marker([w.latitude, w.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <img src="${w.image}" style="width:140px;border-radius:8px"><br>
+                            <b>${w.nama}</b><br>
+                            ${w.area}<br>
+                            ⭐ ${w.vote_average}<br>
+                            <a href="/wisata/${w.id}">Detail</a>
+                        `);
+                    markers.push(marker);
+                }
+
+                list.innerHTML += `
+                    <div class="card">
+                        <img src="${w.image}">
+                        <div class="card-body">
+                            <h4>${w.nama}</h4>
+                            <p>${w.area}</p>
+                            <p>⭐ ${w.vote_average}</p>
+                            <p>HTM: Rp ${w.htm_weekday.toLocaleString()}</p>
+                            <a href="/wisata/${w.id}">Detail</a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            renderChart(data);
+        });
+}
+
+/* ================= EVENT ================= */
+["kategori","area","rating","harga","sort"].forEach(id => {
+    document.getElementById(id).addEventListener("change", loadData);
+});
+
+/* ================= INIT ================= */
+loadData();
+</script>
+
+<style>
+#map {
+    height: 420px;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.filter {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.filter select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+    gap: 20px;
+}
+
+.chart-wrapper {
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+.card-body {
+    padding: 12px;
+}
+</style>
+{% endblock %}
